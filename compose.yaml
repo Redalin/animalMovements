@@ -1,0 +1,42 @@
+# Works with both Docker Compose (`docker compose up --build`)
+# and Podman Compose (`podman compose up --build`).
+# Runs the API + Basic UI alongside a separate PostgreSQL DB container.
+# For local VS Code dev (SQLite) or single-container SQLite, see compose.sqlite.yaml.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: animalmovements
+      POSTGRES_USER: animal_user
+      POSTGRES_PASSWORD: animal_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U animal_user -d animalmovements"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: Postgres
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=animalmovements;Username=animal_user;Password=animal_dev_password"
+      Auth__Mode: Local
+      Auth__SeedDemoUser: "true"
+
+volumes:
+  pgdata:

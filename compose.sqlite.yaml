@@ -1,0 +1,23 @@
+# Optional SQLite container setup (persistent volume, single container)
+# Run with: docker compose -f compose.sqlite.yaml up --build
+#       or: podman compose -f compose.sqlite.yaml up --build
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: Sqlite
+      ConnectionStrings__DefaultConnection: "Data Source=/app/data/animalmovements.db"
+      Auth__Mode: Local
+      Auth__SeedDemoUser: "true"
+    volumes:
+      - sqlitedata:/app/data
+
+volumes:
+  sqlitedata:

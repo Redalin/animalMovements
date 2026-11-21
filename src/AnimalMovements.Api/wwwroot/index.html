@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animal Movements — Observability &amp; API Console</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Animal Movements</h1>
+      <span class="subtitle">.NET 10 · DDD Onion · Outbox · Observability Console</span>
+    </div>
+    <div class="topbar-meta">
+      <span id="badge-db" class="pill">DB: ...</span>
+      <span id="badge-auth" class="pill">Auth: ...</span>
+      <span id="badge-nzdate" class="pill">NZ Today: ...</span>
+      <a href="/swagger" target="_blank" rel="noopener" class="btn btn-secondary">Open Swagger UI</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Auth Bar -->
+    <section class="card auth-bar">
+      <div class="auth-left">
+        <strong>Authentication</strong>
+        <span id="auth-status" class="status-pill status-warn">Not signed in</span>
+      </div>
+      <div class="auth-controls">
+        <input id="auth-email" type="email" value="demo@animalmovements.local" placeholder="Email" />
+        <input id="auth-password" type="password" value="DemoPass123!" placeholder="Password" />
+        <button id="btn-login" class="btn btn-primary">Sign In (Demo)</button>
+        <button id="btn-copy-token" class="btn btn-secondary" disabled>Copy JWT</button>
+        <button id="btn-logout" class="btn btn-ghost" disabled>Sign Out</button>
+      </div>
+    </section>
+
+    <!-- Main 2-column grid -->
+    <div class="grid-2">
+      <!-- Record Movement -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Record Movement <code>POST /api/movements</code></h2>
+          <div class="quick-actions">
+            <button type="button" class="btn btn-xs" id="preset-valid">Valid Sample</button>
+            <button type="button" class="btn btn-xs" id="preset-chain">Chain Next Leg</button>
+            <button type="button" class="btn btn-xs btn-warn" id="preset-same-loc">422 Same Loc</button>
+            <button type="button" class="btn btn-xs btn-warn" id="preset-future">422 Future Date</button>
+            <button type="button" class="btn btn-xs btn-warn" id="preset-bad-input">400 Bad Input</button>
+          </div>
+        </div>
+
+        <form id="movement-form" class="form-grid">
+          <label>
+            Animal ID (15 digits)
+            <input id="f-animalId" type="text" value="982000123456789" maxlength="20" />
+          </label>
+          <label>
+            Species
+            <select id="f-species">
+              <option value="Cattle">Cattle</option>
+              <option value="Deer">Deer</option>
+            </select>
+          </label>
+          <label>
+            From Location (max 20)
+            <input id="f-fromLocationId" type="text" value="FARM-NZ-001" maxlength="25" />
+          </label>
+          <label>
+            To Location (max 20)
+            <input id="f-toLocationId" type="text" value="FARM-NZ-002" maxlength="25" />
+          </label>
+          <label>
+            Movement Date (NZ)
+            <input id="f-movementDate" type="date" />
+          </label>
+          <label>
+            Recorded By (max 100)
+            <input id="f-recordedBy" type="text" value="Jane Doe" maxlength="100" />
+          </label>
+          <label class="span-2">
+            Notes (optional, max 500)
+            <input id="f-notes" type="text" placeholder="Optional movement notes" maxlength="500" />
+          </label>
+          <div class="span-2 form-footer">
+            <button type="submit" class="btn btn-primary">Record Movement</button>
+            <span id="post-status" class="http-badge"></span>
+          </div>
+        </form>
+
+        <pre id="post-response" class="code-box">// Response payload will appear here</pre>
+      </section>
+
+      <!-- Movement History -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Movement History <code>GET /api/animals/{id}/movements</code></h2>
+        </div>
+
+        <div class="inline-search">
+          <input id="q-animalId" type="text" value="982000123456789" placeholder="15-digit Animal ID" />
+          <button id="btn-fetch-history" class="btn btn-primary">Fetch History</button>
+          <span id="get-status" class="http-badge"></span>
+        </div>
+
+        <div id="history-summary" class="muted">Enter an Animal ID and click Fetch History.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>From → To</th>
+                <th>Species</th>
+                <th>Recorded By</th>
+                <th>Created (UTC)</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="5" class="muted">No data loaded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <details class="raw-details">
+          <summary>Raw JSON Response</summary>
+          <pre id="get-response" class="code-box"></pre>
+        </details>
+      </section>
+    </div>
+
+    <!-- Test Runner & Outbox -->
+    <div class="grid-2">
+      <!-- Automated Business Rules Test Runner -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Automated Business Rule Tests</h2>
+          <button id="btn-run-tests" class="btn btn-primary">Run Tests</button>
+        </div>
+        <div id="test-summary" class="muted">Click "Run Tests" to execute the domain business-rule verification suite.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Category</th>
+                <th>Test Case</th>
+                <th>ms</th>
+              </tr>
+            </thead>
+            <tbody id="tests-tbody">
+              <tr><td colspan="4" class="muted">Not run yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Outbox Monitor -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Outbox Queue (Eventual Consistency)</h2>
+          <div class="inline-controls">
+            <label class="checkbox-label">
+              <input id="chk-auto-refresh" type="checkbox" checked /> Auto-refresh (3s)
+            </label>
+            <button id="btn-refresh-outbox" class="btn btn-xs">Refresh</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Event</th>
+                <th>Occurred (UTC)</th>
+                <th>Processed (UTC)</th>
+                <th>Retries</th>
+              </tr>
+            </thead>
+            <tbody id="outbox-tbody">
+              <tr><td colspan="5" class="muted">No outbox messages yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Verbose Live Logs -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Verbose Application Logs</h2>
+        <div class="inline-controls">
+          <select id="log-level">
+            <option value="Verbose" selected>Verbose+</option>
+            <option value="Debug">Debug+</option>
+            <option value="Information">Information+</option>
+            <option value="Warning">Warning+</option>
+            <option value="Error">Error+</option>
+          </select>
+          <input id="log-search" type="text" placeholder="Filter by text or correlationId..." />
+          <button id="btn-refresh-logs" class="btn btn-xs">Refresh</button>
+          <button id="btn-clear-logs" class="btn btn-xs btn-ghost">Clear</button>
+        </div>
+      </div>
+      <div class="log-console" id="log-console">Loading logs...</div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
